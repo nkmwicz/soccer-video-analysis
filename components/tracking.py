@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None  # Fallback if not installed
+
 
 @dataclass(frozen=True)
 class TrackFrame:
@@ -72,6 +77,8 @@ def run_tracking(
     frame_index = 0
     processed = 0
 
+    pbar = tqdm(total=max_frames or 1000, desc="Tracking frames", unit="frame") if tqdm else None
+
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -125,9 +132,13 @@ def run_tracking(
 
         frame_index += 1
         processed += 1
+        if pbar:
+            pbar.update(1)
         if max_frames is not None and processed >= max_frames:
             break
 
+    if pbar:
+        pbar.close()
     cap.release()
 
     player_tracks = [

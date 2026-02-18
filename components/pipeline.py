@@ -4,6 +4,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 from components.csv_writer import write_events_csv
 from components.action_recognition import recognize_actions
 from components.event_builder import build_action_events
@@ -33,7 +38,9 @@ class Pipeline:
 
     def run(self) -> None:
         videos = discover_videos(self._config.videos_dir)
-        for video_path in videos:
+        videos_list = list(videos)
+        
+        for video_path in (tqdm(videos_list, desc="Processing videos", unit="video") if tqdm else videos_list):
             game_id = video_path.stem
             output_path = self._config.data_dir / f"{game_id}.csv"
             if output_path.exists():
@@ -54,22 +61,49 @@ class Pipeline:
 
     def _process_video(self, metadata: VideoMetadata, line_color: Optional[str]) -> List[ActionEvent]:
         _pitch = select_pitch_dimensions(metadata.players_on_field)
-        _segments = segment_game_phases(metadata.video_path, line_color=line_color)
-        _tracking = run_tracking(metadata.video_path)
-        _tracking = assign_team_colors(metadata.video_path, _tracking)
-        _tracking = assign_jersey_numbers(metadata.video_path, _tracking)
-        _tracking = link_substitutions(_tracking)
-        _possessions = infer_possessions(metadata.video_path, _tracking)
+        
+        steps = [
+            ("Segmenting phases", lambda: segment_game_phases(metadata.video_path, line_color=line_color)),
+            ("Tracking players/ball", lambda: run_tracking(metadata.video_path)),
+            ("Assigning team colors", lambda: assign_team_colors(metadata.video_path, _tracking)),
+            ("Extracting jersey numbers", lambda: assign_jersey_numbers(metadata.video_path, _tracking)),
+            ("Linking substitutions", lambda: link_substitutions(_tracking)),
+            ("Inferring possession", lambda: infer_possessions(metadata.video_path, _tracking)),
+            ("Recognizing actions", lambda: recognize_actions(_tracking, (_pitch.length_m, _pitch.width_m))),
+        ]
+        
+        _segments = None
+        _tracking = None
+        _tracking_copy = None
+        _possessions = None
+        _action_candidates = None
+        
+        for desc, func in (tqdm(steps, desc="Pipeline", unit="step") if tqdm else steps):
+            if desc == "Segmenting phases":
+                _segments = func()
+            elif desc == "Tracking players/ball":
+                _tracking = func()
+            elif desc == "Assigning team colors":
+                _tracking = func()
+            elif desc == "Extracting jersey numbers":
+                _tracking = func()
+            elif desc == "Linking substitutions":
+                _tracking = func()
+            elif desc == "Inferring possession":
+                _possessions = func()
+            elif desc == "Recognizing actions":
+                _action_candidates = func()
+        
         _pitch_mapper = PitchMapper(
             metadata.video_path,
             _tracking,
             (_pitch.length_m, _pitch.width_m),
             line_color=line_color,
         )
-        action_candidates = recognize_actions(_tracking, (_pitch.length_m, _pitch.width_m))
+        
         events = build_action_events(
             metadata.game_id,
-            action_candidates,
+            _action_candidates,
             _tracking,
             _pitch_mapper,
             _possessions,
