@@ -26,6 +26,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Total players on field (used to pick pitch size)",
     )
+    parser.add_argument(
+        "--line-color",
+        type=str,
+        default=None,
+        help="Field line color to prefer when detecting the pitch (e.g., white, yellow)",
+    )
     return parser
 
 
@@ -37,6 +43,7 @@ def main() -> None:
             videos_dir=args.videos_dir,
             data_dir=args.data_dir,
             players_on_field=args.players_on_field,
+            line_color=args.line_color,
         )
     )
     pipeline.run()
