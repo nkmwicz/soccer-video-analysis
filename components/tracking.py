@@ -56,6 +56,7 @@ def run_tracking(
         raise RuntimeError("ultralytics is required for YOLO detection.") from exc
 
     model = YOLO("yolov8n.pt")
+    model.to("cpu")  # Force CPU to avoid GPU compatibility issues
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return TrackingResult(player_tracks=[], ball_tracks=[])
