@@ -6,6 +6,7 @@ from typing import Iterable, List, Optional
 
 from components.csv_writer import write_events_csv
 from components.action_recognition import recognize_actions
+from components.event_builder import build_action_events
 from components.jersey_ocr import assign_jersey_numbers
 from components.substitution_linking import link_substitutions
 from components.phase_segmentation import segment_game_phases
@@ -66,5 +67,12 @@ class Pipeline:
             line_color=line_color,
         )
         action_candidates = recognize_actions(_tracking, (_pitch.length_m, _pitch.width_m))
-        # TODO: convert action_candidates to ActionEvent objects with pitch coords.
-        return []
+        events = build_action_events(
+            metadata.game_id,
+            action_candidates,
+            _tracking,
+            _pitch_mapper,
+            _possessions,
+            _segments,
+        )
+        return events

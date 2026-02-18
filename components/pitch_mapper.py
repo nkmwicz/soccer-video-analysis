@@ -65,3 +65,11 @@ class PitchMapper:
             return pitch_coords
 
         return []
+
+    def transform_point(self, x: float, y: float, frame_index: int) -> Optional[tuple[float, float]]:
+        """Transforms a single point from pixel to pitch coords."""
+        H = self.get_homography(frame_index)
+        if H is None:
+            return None
+        transformed = apply_homography([(x, y)], H)
+        return transformed[0] if transformed else None
