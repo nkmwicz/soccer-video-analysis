@@ -8,6 +8,7 @@ from components.csv_writer import write_events_csv
 from components.jersey_ocr import assign_jersey_numbers
 from components.substitution_linking import link_substitutions
 from components.phase_segmentation import segment_game_phases
+from components.pitch_mapper import PitchMapper
 from components.possession import infer_possessions
 from components.team_color import assign_team_colors
 from components.tracking import run_tracking
@@ -57,8 +58,12 @@ class Pipeline:
         _tracking = assign_jersey_numbers(metadata.video_path, _tracking)
         _tracking = link_substitutions(_tracking)
         _possessions = infer_possessions(metadata.video_path, _tracking)
+        _pitch_mapper = PitchMapper(
+            metadata.video_path,
+            _tracking,
+            (_pitch.length_m, _pitch.width_m),
+            line_color=line_color,
+        )
         # Phase 1 placeholder: return no events until detectors are wired in.
-        # TODO: add homography mapping from image coordinates to pitch coordinates.
-        # TODO: add team color classification + jersey OCR.
         # TODO: add action recognition (actions + subactions).
         return []
