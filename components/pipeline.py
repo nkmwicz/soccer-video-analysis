@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from components.csv_writer import write_events_csv
+from components.jersey_ocr import assign_jersey_numbers
+from components.substitution_linking import link_substitutions
 from components.phase_segmentation import segment_game_phases
 from components.possession import infer_possessions
 from components.team_color import assign_team_colors
@@ -52,6 +54,8 @@ class Pipeline:
         _segments = segment_game_phases(metadata.video_path, line_color=line_color)
         _tracking = run_tracking(metadata.video_path)
         _tracking = assign_team_colors(metadata.video_path, _tracking)
+        _tracking = assign_jersey_numbers(metadata.video_path, _tracking)
+        _tracking = link_substitutions(_tracking)
         _possessions = infer_possessions(metadata.video_path, _tracking)
         # Phase 1 placeholder: return no events until detectors are wired in.
         # TODO: add homography mapping from image coordinates to pitch coordinates.
