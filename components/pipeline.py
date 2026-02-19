@@ -30,6 +30,7 @@ class PipelineConfig:
     data_dir: Path
     players_on_field: Optional[int] = None
     line_color: Optional[str] = None
+    team_names: Optional[dict[str, str]] = None
 
 
 class Pipeline:
@@ -51,15 +52,22 @@ class Pipeline:
                     f"Preferred field line color for {game_id} (e.g., white, yellow) [leave blank to skip]: "
                 ).strip()
                 line_color = response or None
+            
+            team_names = self._config.team_names
+            if team_names is None:
+                us_color = input(f"Which jersey color is your team for {game_id} (e.g., blue, white): ").strip()
+                them_color = input(f"Which jersey color is the opponent for {game_id} (e.g., red, yellow): ").strip()
+                team_names = {us_color.lower(): "us", them_color.lower(): "them"}
+            
             metadata = VideoMetadata(
                 game_id=game_id,
                 video_path=str(video_path),
                 players_on_field=self._config.players_on_field,
             )
-            events = self._process_video(metadata, line_color)
+            events = self._process_video(metadata, line_color, team_names)
             write_events_csv(output_path, events)
 
-    def _process_video(self, metadata: VideoMetadata, line_color: Optional[str]) -> List[ActionEvent]:
+    def _process_video(self, metadata: VideoMetadata, line_color: Optional[str], team_names: dict[str, str]) -> List[ActionEvent]:
         _pitch = select_pitch_dimensions(metadata.players_on_field)
         
         steps = [
@@ -108,5 +116,6 @@ class Pipeline:
             _pitch_mapper,
             _possessions,
             _segments,
+            team_names,
         )
         return events

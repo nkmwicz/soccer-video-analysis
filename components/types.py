@@ -25,6 +25,7 @@ class ActionEvent:
     phase: Optional[str]
     possession_id: Optional[str]
     team_color: Optional[str]
+    team_name: Optional[str]
     player_number: Optional[str]
     player_track_id: Optional[str]
     ball_owner_track_id: Optional[str]

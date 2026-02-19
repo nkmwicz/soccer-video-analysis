@@ -34,7 +34,7 @@ def assign_jersey_numbers(
     if not sample_map:
         return tracking
 
-    reader = easyocr.Reader(["en"], gpu=False)
+    reader = easyocr.Reader(["en"], gpu=False, verbose=False)
     frame_numbers = _extract_numbers(video_path, sample_map, reader, min_confidence)
 
     updated_players: List[Track] = []

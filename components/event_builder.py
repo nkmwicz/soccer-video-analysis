@@ -17,6 +17,7 @@ def build_action_events(
     pitch_mapper: PitchMapper,
     possession_segments: List[PossessionSegment],
     phase_segments: List,
+    team_names: Dict[str, str],
 ) -> List[ActionEvent]:
     """
     Converts action candidates to ActionEvent objects with pitch coords, team, and possession info.
@@ -41,6 +42,7 @@ def build_action_events(
 
         possession_id = possession_map.get(candidate.start_frame)
         period, phase = phase_map.get(candidate.start_frame, (None, None))
+        team_name = team_names.get(player_track.team_color.lower() if player_track.team_color else "", None)
 
         event = ActionEvent(
             game_id=game_id,
@@ -49,6 +51,7 @@ def build_action_events(
             phase=phase,
             possession_id=possession_id,
             team_color=player_track.team_color,
+            team_name=team_name,
             player_number=player_track.jersey_number,
             player_track_id=candidate.player_track_id,
             ball_owner_track_id=candidate.ball_track_id,
