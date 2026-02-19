@@ -26,6 +26,17 @@ def assign_jersey_numbers(
         raise RuntimeError("OpenCV is required for jersey OCR.") from exc
 
     try:
+        import os
+        os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+        import torch
+        torch.cuda.is_available = lambda: False
+        torch.cuda.device_count = lambda: 0
+        if hasattr(torch, "set_default_device"):
+            torch.set_default_device("cpu")
+    except Exception:
+        pass
+
+    try:
         import easyocr
     except ImportError as exc:
         raise RuntimeError("easyocr is required for jersey OCR.") from exc
