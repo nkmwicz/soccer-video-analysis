@@ -31,27 +31,15 @@ def assign_jersey_numbers(
         raise RuntimeError("OpenCV is required for jersey OCR.") from exc
 
     try:
-        import os
-        os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-        import torch
-        torch.cuda.is_available = lambda: False
-        torch.cuda.device_count = lambda: 0
-        if hasattr(torch, "set_default_device"):
-            torch.set_default_device("cpu")
-    except Exception:
-        pass
-
-    try:
-        import easyocr
+        import pytesseract
     except ImportError as exc:
-        raise RuntimeError("easyocr is required for jersey OCR.") from exc
+        raise RuntimeError("pytesseract is required for jersey OCR.") from exc
 
     sample_map = _collect_samples(tracking.player_tracks, samples_per_track)
     if not sample_map:
         return tracking
 
-    reader = easyocr.Reader(["en"], gpu=False, verbose=False)
-    frame_numbers = _extract_numbers(video_path, sample_map, reader, min_confidence)
+    frame_numbers = _extract_numbers(video_path, sample_map, pytesseract, min_confidence)
 
     updated_players: List[Track] = []
     for track in tracking.player_tracks:
@@ -80,7 +68,7 @@ def _collect_samples(
 def _extract_numbers(
     video_path: str,
     sample_map: Dict[int, List[Tuple[str, Tuple[float, float, float, float]]]],
-    reader: "easyocr.Reader",
+    pytesseract: object,
     min_confidence: float,
 ) -> Dict[str, List[str]]:
     import cv2
@@ -122,13 +110,11 @@ def _extract_numbers(
 
             jersey = _crop_jersey_region(crop)
             gray = cv2.cvtColor(jersey, cv2.COLOR_BGR2GRAY)
-            results = reader.readtext(gray)
-            for _, text, conf in results:
-                if conf < min_confidence:
-                    continue
-                digits = "".join(ch for ch in text if ch.isdigit())
-                if digits:
-                    frame_numbers.setdefault(track_id, []).append(digits)
+            config = "--psm 7 -c tessedit_char_whitelist=0123456789"
+            text = pytesseract.image_to_string(gray, config=config)
+            digits = "".join(ch for ch in text if ch.isdigit())
+            if digits:
+                frame_numbers.setdefault(track_id, []).append(digits)
 
         frame_index += 1
         if pbar:
