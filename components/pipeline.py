@@ -31,6 +31,7 @@ class PipelineConfig:
     players_on_field: Optional[int] = None
     line_color: Optional[str] = None
     team_names: Optional[dict[str, str]] = None
+    enable_ocr: Optional[bool] = None
 
 
 class Pipeline:
@@ -59,26 +60,39 @@ class Pipeline:
                 them_color = input(f"Which jersey color is the opponent for {game_id} (e.g., red, yellow): ").strip()
                 team_names = {us_color.lower(): "us", them_color.lower(): "them"}
             
+            enable_ocr = self._config.enable_ocr
+            if enable_ocr is None:
+                response = input(f"Run jersey OCR for {game_id}? [Y/n]: ").strip().lower()
+                enable_ocr = response != "n"
+
             metadata = VideoMetadata(
                 game_id=game_id,
                 video_path=str(video_path),
                 players_on_field=self._config.players_on_field,
             )
-            events = self._process_video(metadata, line_color, team_names)
+            events = self._process_video(metadata, line_color, team_names, enable_ocr)
             write_events_csv(output_path, events)
 
-    def _process_video(self, metadata: VideoMetadata, line_color: Optional[str], team_names: dict[str, str]) -> List[ActionEvent]:
+    def _process_video(
+        self,
+        metadata: VideoMetadata,
+        line_color: Optional[str],
+        team_names: dict[str, str],
+        enable_ocr: bool,
+    ) -> List[ActionEvent]:
         _pitch = select_pitch_dimensions(metadata.players_on_field)
         
         steps = [
             ("Segmenting phases", lambda: segment_game_phases(metadata.video_path, line_color=line_color)),
             ("Tracking players/ball", lambda: run_tracking(metadata.video_path)),
             ("Assigning team colors", lambda: assign_team_colors(metadata.video_path, _tracking)),
-            ("Extracting jersey numbers", lambda: assign_jersey_numbers(metadata.video_path, _tracking)),
             ("Linking substitutions", lambda: link_substitutions(_tracking)),
             ("Inferring possession", lambda: infer_possessions(metadata.video_path, _tracking)),
             ("Recognizing actions", lambda: recognize_actions(_tracking, (_pitch.length_m, _pitch.width_m))),
         ]
+
+        if enable_ocr:
+            steps.insert(3, ("Extracting jersey numbers", lambda: assign_jersey_numbers(metadata.video_path, _tracking)))
         
         _segments = None
         _tracking = None

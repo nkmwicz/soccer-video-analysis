@@ -6,6 +6,11 @@ from typing import Dict, List, Optional, Tuple
 
 from components.tracking import Track, TrackingResult
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 
 def assign_jersey_numbers(
     video_path: str,
@@ -89,6 +94,7 @@ def _extract_numbers(
     frame_index = 0
     target_iter = iter(target_frames)
     current_target = next(target_iter, None)
+    pbar = tqdm(total=len(target_frames), desc="Jersey OCR", unit="frame") if tqdm else None
 
     while current_target is not None:
         ok, frame = cap.read()
@@ -125,8 +131,12 @@ def _extract_numbers(
                     frame_numbers.setdefault(track_id, []).append(digits)
 
         frame_index += 1
+        if pbar:
+            pbar.update(1)
         current_target = next(target_iter, None)
 
+    if pbar:
+        pbar.close()
     cap.release()
     return frame_numbers
 
