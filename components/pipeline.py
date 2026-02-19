@@ -105,6 +105,8 @@ class Pipeline:
                 _segments = func()
             elif desc == "Tracking players/ball":
                 _tracking = func()
+                if _tracking and not _tracking.ball_tracks:
+                    print("Warning: No ball tracks detected. Actions may be empty.")
             elif desc == "Assigning team colors":
                 _tracking = func()
             elif desc == "Extracting jersey numbers":

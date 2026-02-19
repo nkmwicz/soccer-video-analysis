@@ -87,7 +87,14 @@ def run_tracking(
             frame_index += 1
             continue
 
-        results = model.predict(frame, verbose=False)[0]
+        results = model.predict(
+            frame,
+            verbose=False,
+            conf=0.1,
+            iou=0.7,
+            classes=[0, 32],
+            imgsz=960,
+        )[0]
         detections = sv.Detections.from_ultralytics(results)
         names = results.names
 
